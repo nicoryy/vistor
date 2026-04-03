@@ -12,6 +12,57 @@ Dado um banco de dados com pontos de campo (ex: iluminação pública), cada pon
 
 O fluxo manual era: filtrar REF na planilha → abrir fotos no navegador → localizar o ponto correto → voltar à planilha → preencher. O sistema automatiza todo esse ciclo.
 
+## Como utilizar
+
+### 1. Prepare a planilha
+
+O Vistor trabalha com um arquivo Excel (`.xlsx`) que deve ter **duas abas**:
+
+**Aba Base** — a tabela completa com todos os pontos de campo. Cada linha é um ponto e precisa ter ao menos estas informações em colunas separadas:
+- Um **número ou código que identifica o ponto** (ex: coluna `ID`)
+- Um **código de grupo**, que agrupa vários pontos sob uma mesma referência (ex: coluna `REF` ou `TRAFO`)
+- Um **link para a foto** do ponto (ex: coluna `FOTO`)
+- Uma **coluna vazia** onde o resultado será gravado (ex: coluna `CONDICAO`)
+
+> Os nomes das colunas podem ser qualquer um — você escolhe quais são no app.
+
+**Aba Lista** — uma tabela menor com os grupos que você quer revisar. Basta uma coluna com os códigos de grupo, um por linha.
+
+Exemplo de como a planilha deve ficar:
+
+**Aba Base** (ex: `Pontos`):
+| ID | REF | FOTO | CONDICAO |
+|----|-----|------|----------|
+| 1001 | TBT0513 | https://... | |
+| 1002 | TBT0513 | https://... | |
+| 1003 | TBT0518 | https://... | |
+
+**Aba Lista** (ex: `Trafos`):
+| TRAFO |
+|-------|
+| TBT0513 |
+| TBT0518 |
+
+### 2. Abra e configure o app
+
+1. Abra o Vistor
+2. Clique em **Selecionar arquivo** e escolha o seu `.xlsx`
+3. Indique qual aba é a **Base** (tabela completa) e qual é a **Lista** (grupos a revisar)
+4. Indique quais colunas da aba Base correspondem a: ID, REF, FOTO e CONDICAO
+5. Indique qual coluna da aba Lista contém os códigos de grupo
+6. Digite o valor que será gravado quando você aprovar um ponto (ex: `OK`, `SIM`, `✓`)
+7. Clique em **Iniciar revisão**
+
+### 3. Faça a revisão
+
+O app vai abrir as fotos de cada grupo automaticamente, uma a uma. Você não precisa usar o mouse — tudo é controlado pelo teclado:
+
+| Tecla | O que faz |
+|-------|-----------|
+| **F1** | Passa para a próxima foto. Se for a última do grupo, pergunta se quer ver de novo ou pular para o próximo grupo |
+| **F2** | Aprova o ponto atual — grava o valor que você configurou na coluna CONDICAO e pergunta se quer continuar procurando no mesmo grupo |
+| **F3** | Encerra a revisão e volta à tela inicial |
+
 ## Stack
 
 | Camada | Tecnologia |
