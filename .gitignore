@@ -3,3 +3,6 @@ out/
 release/
 dist/
 *.local
+
+.claude/
+*.tsbuildinfo
