@@ -1,4 +1,4 @@
-# Links Imagem
+# Vistor
 
 Sistema desktop para revisão de imagens vinculadas a planilhas Excel com automação via hotkeys. Desenvolvido para acelerar fluxos de inspeção de campo onde o operador precisa identificar um ponto específico dentre vários por referência de grupo.
 
@@ -27,7 +27,7 @@ O fluxo manual era: filtrar REF na planilha → abrir fotos no navegador → loc
 ## Arquitetura
 
 ```
-links_imagem/
+vistor/
 ├── electron/
 │   ├── main/
 │   │   ├── index.ts            # Entrada do processo principal, before-quit guard

@@ -12,7 +12,7 @@ function createWindow(): BrowserWindow {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: 'Links Imagem',
+    title: 'Vistor',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

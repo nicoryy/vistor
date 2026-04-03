@@ -1,7 +1,7 @@
 {
-  "name": "links-imagem",
+  "name": "vistor",
   "version": "1.0.0",
-  "description": "Sistema de revisão de imagens com hotkeys para planilhas Excel",
+  "description": "App desktop para revisão de imagens vinculadas a planilhas Excel com hotkeys",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -29,8 +29,8 @@
     "vite": "^5.2.11"
   },
   "build": {
-    "appId": "com.links-imagem.app",
-    "productName": "Links Imagem",
+    "appId": "com.vistor.app",
+    "productName": "Vistor",
     "directories": {
       "output": "release"
     },
