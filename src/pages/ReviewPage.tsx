@@ -25,9 +25,21 @@ export default function ReviewPage(): JSX.Element {
   const totalImages = currentImages.length
 
   if (!currentImage) {
+    const hasImages = currentImages.length > 0
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <div style={{ color: 'var(--text-muted)' }}>Carregando...</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
+        {hasImages ? (
+          <div style={{ color: 'var(--text-muted)' }}>Carregando...</div>
+        ) : (
+          <>
+            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+              Nenhuma imagem encontrada para o REF <strong style={{ color: 'var(--accent)' }}>{currentRef}</strong>
+            </div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+              Pressione <kbd style={{ background: 'var(--surface)', padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)' }}>F1</kbd> para avançar
+            </div>
+          </>
+        )}
       </div>
     )
   }
