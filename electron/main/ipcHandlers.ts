@@ -106,7 +106,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
 
   // Encerra o workflow: drena a fila antes de parar o worker
   ipcMain.handle('workflow:end', async () => {
-    console.log(`[IPC] workflow:end: aguardando drain (${writeQueue.pending} pendentes)`)
+    console.log('[IPC] workflow:end: aguardando drain (flush final do worker)')
     unregisterShortcuts()
     await writeQueue.drain()
     writeQueue.stop()

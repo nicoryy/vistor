@@ -1,27 +1,29 @@
 /**
  * Gerenciador do Worker Thread de escrita.
  * O main thread envia comandos; o worker executa de forma independente.
+ *
+ * O worker agora é responsável por carregar o workbook e ler os dados
+ * da planilha — start() retorna baseRows, allRefs e condicaoColIndex
+ * para que o main thread não precise fazer leitura duplicada.
  */
 import { Worker } from 'worker_threads'
 import { join } from 'path'
+import type { AppConfig, BaseRow } from '../../shared/types'
 
 type OutMsg =
-  | { type: 'ready' }
+  | { type: 'ready'; baseRows: BaseRow[]; allRefs: string[]; condicaoColIndex: number }
   | { type: 'done';    msgId: number }
   | { type: 'error';   msgId: number; error: string }
   | { type: 'drained'; drainId: number }
 
 class WriteQueueManager {
   private worker: Worker | null = null
-  private _pending = 0
   private msgCounter = 0
   private drainCounter = 0
   private drainResolvers = new Map<number, () => void>()
 
-  get pending(): number { return this._pending }
-
-  // Inicia o worker e aguarda ele carregar o workbook
-  start(filePath: string): Promise<void> {
+  // Inicia o worker, aguarda ele carregar o workbook e retorna os dados lidos
+  start(filePath: string, config: AppConfig): Promise<{ baseRows: BaseRow[]; allRefs: string[]; condicaoColIndex: number }> {
     return new Promise((resolve, reject) => {
       const workerPath = join(__dirname, 'writeWorker.js')
       console.log(`[WriteQueue] iniciando worker: ${workerPath}`)
@@ -30,18 +32,20 @@ class WriteQueueManager {
 
       this.worker.on('message', (msg: OutMsg) => {
         if (msg.type === 'ready') {
-          console.log('[WriteQueue] worker pronto')
-          resolve()
+          console.log(`[WriteQueue] worker pronto — ${msg.baseRows.length} linhas, ${msg.allRefs.length} REFs`)
+          resolve({ baseRows: msg.baseRows, allRefs: msg.allRefs, condicaoColIndex: msg.condicaoColIndex })
           return
         }
         if (msg.type === 'done') {
-          this._pending--
-          console.log(`[WriteQueue] msgId=${msg.msgId} concluído, pendentes=${this._pending}`)
+          console.log(`[WriteQueue] msgId=${msg.msgId} — memória atualizada`)
           return
         }
         if (msg.type === 'error') {
-          this._pending--
           console.error(`[WriteQueue] erro msgId=${msg.msgId}: ${msg.error}`)
+          // Se o erro ocorreu no init (msgId === -1), rejeita a promise de start
+          if (msg.msgId === -1) {
+            reject(new Error(msg.error))
+          }
           return
         }
         if (msg.type === 'drained') {
@@ -63,7 +67,7 @@ class WriteQueueManager {
         this.worker = null
       })
 
-      this.worker.postMessage({ type: 'init', filePath })
+      this.worker.postMessage({ type: 'init', filePath, config })
     })
   }
 
@@ -74,33 +78,31 @@ class WriteQueueManager {
       return
     }
     const msgId = ++this.msgCounter
-    this._pending++
-    console.log(`[WriteQueue] enfileirando msgId=${msgId} pendentes=${this._pending}`)
+    console.log(`[WriteQueue] enfileirando msgId=${msgId}`)
     this.worker.postMessage({ type: 'write', msgId, sheetName, rowIndex, colIndex, value })
   }
 
-  // Aguarda todos os writes pendentes completarem
+  // Força flush imediato de qualquer write pendente no disco e aguarda conclusão
   drain(): Promise<void> {
-    if (!this.worker || this._pending === 0) {
-      console.log('[WriteQueue] drain: nada pendente')
+    if (!this.worker) {
+      console.log('[WriteQueue] drain: sem worker ativo')
       return Promise.resolve()
     }
     return new Promise((resolve) => {
       const drainId = ++this.drainCounter
-      console.log(`[WriteQueue] drain: aguardando ${this._pending} write(s) (drainId=${drainId})`)
+      console.log(`[WriteQueue] drain: aguardando flush (drainId=${drainId})`)
       this.drainResolvers.set(drainId, resolve)
       this.worker?.postMessage({ type: 'drain', drainId })
     })
   }
 
-  // Para o worker (sem esperar drains pendentes)
+  // Para o worker sem esperar drains pendentes
   stop(): void {
     if (this.worker) {
       console.log('[WriteQueue] encerrando worker')
       this.worker.terminate()
       this.worker = null
     }
-    this._pending = 0
     this.drainResolvers.clear()
   }
 }

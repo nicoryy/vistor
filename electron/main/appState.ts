@@ -1,10 +1,4 @@
 import type { AppConfig, BaseRow, WorkflowSnapshot } from '../../shared/types'
-import {
-  loadWorkbook,
-  readBaseSheet,
-  readListSheet,
-  getSheetHeaders
-} from '../../shared/excel/excelService'
 import { writeQueue } from './writeQueue'
 
 class AppStateManager {
@@ -27,31 +21,26 @@ class AppStateManager {
     // Para qualquer worker anterior antes de iniciar um novo
     writeQueue.stop()
 
-    // Carrega workbook no main thread só para leitura de dados
-    const wb = loadWorkbook(config.filePath)
-    this.baseRows = readBaseSheet(wb, config)
-    this.allRefs = readListSheet(wb, config)
-    this.currentRefIndex = 0
+    // O worker carrega o workbook e lê os dados — main thread não faz leitura dupla
+    const { baseRows, allRefs, condicaoColIndex } = await writeQueue.start(config.filePath, config)
 
-    // Pré-computa o índice da coluna CONDICAO
-    const headers = getSheetHeaders(wb, config.baseSheet.name)
-    this.condicaoColIndex = headers.findIndex(
-      (h) => h.toLowerCase().trim() === config.baseSheet.colCondicao.toLowerCase().trim()
-    )
+    this.baseRows = baseRows
+    this.allRefs = allRefs
+    this.currentRefIndex = 0
+    this.condicaoColIndex = condicaoColIndex
+
     console.log(`[AppState] initialize: condicaoColIndex=${this.condicaoColIndex}`)
 
     this.loadCurrentRefImages()
-    console.log(`[AppState] initialize: leitura concluída em ${Date.now() - t0}ms — ${this.allRefs.length} REFs, ${this.baseRows.length} linhas`)
-
-    // Inicia o worker de escrita em paralelo (ele carrega o workbook independentemente)
-    await writeQueue.start(config.filePath)
-    console.log(`[AppState] initialize: worker de escrita pronto. Total: ${Date.now() - t0}ms`)
+    console.log(
+      `[AppState] initialize: concluído em ${Date.now() - t0}ms — ${this.allRefs.length} REFs, ${this.baseRows.length} linhas`
+    )
   }
 
   private loadCurrentRefImages(): void {
     if (!this.config) return
     const currentRef = this.allRefs[this.currentRefIndex]
-    this.currentImages = this.baseRows.filter((r) => r.ref === currentRef)
+    this.currentImages = this.baseRows.filter((r) => r.ref.toLowerCase() === currentRef.toLowerCase())
     this.currentImageIndex = 0
     console.log(`[AppState] loadCurrentRefImages: REF="${currentRef}" → ${this.currentImages.length} imagens`)
   }
@@ -91,10 +80,14 @@ class AppStateManager {
 
   advanceRef(): WorkflowSnapshot {
     this.currentRefIndex++
-    const finished = this.currentRefIndex >= this.allRefs.length
-    if (!finished) {
+    // Pula REFs sem imagens correspondentes na base (evita tela "Carregando..." infinita)
+    while (this.currentRefIndex < this.allRefs.length) {
       this.loadCurrentRefImages()
+      if (this.currentImages.length > 0) break
+      console.warn(`[AppState] advanceRef: REF="${this.allRefs[this.currentRefIndex]}" sem imagens na base — pulando`)
+      this.currentRefIndex++
     }
+    const finished = this.currentRefIndex >= this.allRefs.length
     console.log(`[AppState] advanceRef: index=${this.currentRefIndex}/${this.allRefs.length} finished=${finished}`)
     return this.getSnapshot()
   }
@@ -102,7 +95,7 @@ class AppStateManager {
   /**
    * Grava a condição para a imagem atual.
    * - Atualiza o estado local em memória (instantâneo)
-   * - Enfileira a escrita no Worker Thread (não bloca — retorna antes de escrever)
+   * - Enfileira a escrita no Worker Thread (não bloca — retorna antes de escrever no disco)
    */
   writeCurrentResult(): { ref: string; selectedId: string } {
     const image = this.getCurrentImage()
@@ -111,7 +104,9 @@ class AppStateManager {
     }
 
     const ref = this.getCurrentRef()
-    console.log(`[AppState] writeCurrentResult: ID="${image.id}" REF="${ref}" row=${image.rowIndex} col=${this.condicaoColIndex} valor="${this.config.condicaoValue}"`)
+    console.log(
+      `[AppState] writeCurrentResult: ID="${image.id}" REF="${ref}" row=${image.rowIndex} col=${this.condicaoColIndex} valor="${this.config.condicaoValue}"`
+    )
 
     // Atualiza estado local (sync, instantâneo)
     image.condicao = this.config.condicaoValue
@@ -136,7 +131,7 @@ class AppStateManager {
     this.currentImages = []
     this.currentImageIndex = 0
     this.condicaoColIndex = -1
-    // NÃO para o worker aqui — pode ter writes pendentes
+    // NÃO para o worker aqui — pode ter writes pendentes no debounce
     // O worker é parado em workflow:end após o drain
   }
 }

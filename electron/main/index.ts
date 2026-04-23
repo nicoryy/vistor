@@ -48,32 +48,15 @@ app.whenReady().then(() => {
   })
 })
 
-// Intercept fechamento: se há writes pendentes, bloqueia e pergunta
+// Intercept fechamento: força flush de qualquer write com debounce pendente
 app.on('before-quit', async (event) => {
   if (isQuitting) return // já tratado, deixa fechar
 
-  const pending = writeQueue.pending
-  if (pending === 0) return // nada pendente, fecha normalmente
-
   event.preventDefault()
-  console.log(`[App] before-quit interceptado: ${pending} write(s) pendente(s)`)
+  console.log('[App] before-quit: garantindo flush de writes pendentes...')
 
-  const { response } = await dialog.showMessageBox({
-    type: 'warning',
-    title: 'Gravações pendentes',
-    message: `Há ${pending} gravação(ões) pendente(s) no Excel.\n\nO que deseja fazer?`,
-    buttons: ['Aguardar conclusão', 'Fechar sem salvar'],
-    defaultId: 0,
-    cancelId: 1
-  })
-
-  if (response === 0) {
-    console.log('[App] aguardando drain antes de fechar...')
-    await writeQueue.drain()
-    console.log('[App] drain concluído, fechando')
-  } else {
-    console.log('[App] usuário optou por fechar sem salvar')
-  }
+  await writeQueue.drain()
+  console.log('[App] drain concluído, fechando')
 
   isQuitting = true
   app.quit()
