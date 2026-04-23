@@ -38,9 +38,16 @@ export function getColumnsAndPreview(
   const ws = wb.Sheets[sheetName]
   if (!ws) return { columns: [], preview: [] }
 
+  // Limita a leitura ao cabeçalho + 3 linhas de preview (evita varrer planilhas inteiras)
+  const fullRange = XLSX.utils.decode_range(ws['!ref'] ?? 'A1')
+  const previewRange = XLSX.utils.encode_range({
+    s: fullRange.s,
+    e: { r: Math.min(fullRange.e.r, 3), c: fullRange.e.c }
+  })
   const data = XLSX.utils.sheet_to_json<unknown[]>(ws, {
     header: 1,
-    defval: ''
+    defval: '',
+    range: previewRange
   }) as unknown[][]
 
   if (data.length === 0) return { columns: [], preview: [] }
