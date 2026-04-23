@@ -16,6 +16,10 @@ export function registerShortcuts(win: BrowserWindow): void {
   globalShortcut.register('F3', () => {
     win.webContents.send('shortcut:f3')
   })
+
+  globalShortcut.register('F4', () => {
+    win.webContents.send('shortcut:f4')
+  })
 }
 
 export function unregisterShortcuts(): void {

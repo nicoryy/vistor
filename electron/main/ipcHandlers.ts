@@ -85,7 +85,15 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('workflow:write-result', () => {
     console.log('[IPC] workflow:write-result: iniciando')
     const result = appState.writeCurrentResult()
-    console.log(`[IPC] workflow:write-result: célula modificada em memória, write async enfileirado → ID="${result.selectedId}"`)
+    console.log(`[IPC] workflow:write-result: célula modificada em memória → ID="${result.selectedId}"`)
+    return { success: true, ...result }
+  })
+
+  // Remove a condição da imagem atual (grava '' na célula)
+  ipcMain.handle('workflow:clear-result', () => {
+    console.log('[IPC] workflow:clear-result: iniciando')
+    const result = appState.clearCurrentResult()
+    console.log(`[IPC] workflow:clear-result: condição removida → ID="${result.selectedId}"`)
     return { success: true, ...result }
   })
 
@@ -93,6 +101,13 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('workflow:next-ref', () => {
     const snapshot = appState.advanceRef()
     console.log(`[IPC] workflow:next-ref: refIndex=${snapshot.currentRefIndex} finished=${snapshot.isFinished}`)
+    return snapshot
+  })
+
+  // Volta para o REF anterior (primeira imagem)
+  ipcMain.handle('workflow:prev-ref', () => {
+    const snapshot = appState.prevRef()
+    console.log(`[IPC] workflow:prev-ref: refIndex=${snapshot.currentRefIndex}`)
     return snapshot
   })
 
@@ -136,7 +151,9 @@ export function removeIpcHandlers(): void {
     'excel:read-columns',
     'workflow:start',
     'workflow:write-result',
+    'workflow:clear-result',
     'workflow:next-ref',
+    'workflow:prev-ref',
     'workflow:restart-ref',
     'workflow:end',
     'dialog:confirm'

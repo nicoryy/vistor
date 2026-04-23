@@ -92,6 +92,15 @@ class AppStateManager {
     return this.getSnapshot()
   }
 
+  prevRef(): WorkflowSnapshot {
+    if (this.currentRefIndex > 0) {
+      this.currentRefIndex--
+      this.loadCurrentRefImages()
+    }
+    console.log(`[AppState] prevRef: index=${this.currentRefIndex}/${this.allRefs.length}`)
+    return this.getSnapshot()
+  }
+
   /**
    * Grava a condição para a imagem atual.
    * - Atualiza o estado local em memória (instantâneo)
@@ -108,15 +117,34 @@ class AppStateManager {
       `[AppState] writeCurrentResult: ID="${image.id}" REF="${ref}" row=${image.rowIndex} col=${this.condicaoColIndex} valor="${this.config.condicaoValue}"`
     )
 
-    // Atualiza estado local (sync, instantâneo)
     image.condicao = this.config.condicaoValue
-
-    // Enfileira write no Worker Thread — retorna imediatamente
     writeQueue.enqueue(
       this.config.baseSheet.name,
       image.rowIndex,
       this.condicaoColIndex,
       this.config.condicaoValue
+    )
+
+    return { ref, selectedId: image.id }
+  }
+
+  clearCurrentResult(): { ref: string; selectedId: string } {
+    const image = this.getCurrentImage()
+    if (!image || !this.config) {
+      throw new Error('[AppState] clearCurrentResult: estado inválido')
+    }
+
+    const ref = this.getCurrentRef()
+    console.log(
+      `[AppState] clearCurrentResult: ID="${image.id}" REF="${ref}" row=${image.rowIndex} col=${this.condicaoColIndex}`
+    )
+
+    image.condicao = null
+    writeQueue.enqueue(
+      this.config.baseSheet.name,
+      image.rowIndex,
+      this.condicaoColIndex,
+      ''
     )
 
     return { ref, selectedId: image.id }

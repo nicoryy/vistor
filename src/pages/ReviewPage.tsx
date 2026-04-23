@@ -95,6 +95,24 @@ export default function ReviewPage(): JSX.Element {
           <div style={{ fontWeight: 700, fontSize: 16, fontFamily: 'monospace' }}>{currentImage.id}</div>
         </div>
 
+        <div style={{ width: 1, height: 36, background: 'var(--border)' }} />
+
+        {/* Indicador de condição */}
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Condição</div>
+          {currentImage.condicao ? (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              background: '#1b5e20', color: '#a5d6a7',
+              borderRadius: 4, padding: '2px 8px', fontSize: 13, fontWeight: 700
+            }}>
+              ✓ {currentImage.condicao}
+            </div>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</div>
+          )}
+        </div>
+
         {/* Barra de progresso total */}
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>

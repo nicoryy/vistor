@@ -53,7 +53,7 @@ export interface WorkflowStartResult {
 }
 
 // Canais de shortcut emitidos pelo main para o renderer
-export type ShortcutChannel = 'shortcut:f1' | 'shortcut:f2' | 'shortcut:f3'
+export type ShortcutChannel = 'shortcut:f1' | 'shortcut:f2' | 'shortcut:f3' | 'shortcut:f4'
 
 // API exposta via contextBridge
 export interface ElectronAPI {
@@ -61,7 +61,9 @@ export interface ElectronAPI {
   readColumns: (filePath: string, sheetName: string) => Promise<{ columns: string[]; preview: Record<string, string>[] }>
   startWorkflow: (config: AppConfig) => Promise<WorkflowStartResult>
   writeResult: () => Promise<{ success: boolean }>
+  clearResult: () => Promise<{ success: boolean }>
   nextRef: () => Promise<WorkflowSnapshot>
+  prevRef: () => Promise<WorkflowSnapshot>
   restartRef: () => Promise<WorkflowSnapshot>
   endWorkflow: () => Promise<void>
   showConfirm: (message: string, positiveLabel: string) => Promise<boolean>

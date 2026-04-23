@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWorkflowStore } from '../store/workflowStore'
+import { useConfigStore } from '../store/configStore'
 import type { ShortcutChannel } from '../../shared/types'
 
 export function useWorkflow(): void {
@@ -63,18 +64,32 @@ export function useWorkflow(): void {
         const currentImage = currentImages[currentImageIndex]
         if (!currentImage) { console.warn('[useWorkflow] F2: nenhuma imagem atual'); return }
 
-        console.log(`[useWorkflow] F2: ID="${currentImage.id}" imagem ${currentImageIndex + 1}/${currentImages.length}`)
+        const jaTemCondicao = !!currentImage.condicao
+        console.log(`[useWorkflow] F2: ID="${currentImage.id}" condicao="${currentImage.condicao ?? ''}" jaTemCondicao=${jaTemCondicao}`)
 
-        // Dialog primeiro (aparece imediatamente)
+        if (jaTemCondicao) {
+          // Toggle: remove a condição já existente
+          const remover = await window.electronAPI.showConfirm(
+            `ID "${currentImage.id}" já tem condição "${currentImage.condicao}".\n\nDeseja remover a condição deste ponto?`,
+            'Remover'
+          )
+          if (!remover) return
+          await window.electronAPI.clearResult()
+          storeRef.current.setCurrentImageCondicao(null)
+          console.log('[useWorkflow] F2: condição removida')
+          return
+        }
+
+        // Fluxo normal: selecionar este ponto
+        const condicaoValue = useConfigStore.getState().config.condicaoValue
         const continuar = await window.electronAPI.showConfirm(
           `ID "${currentImage.id}" — confirmar seleção?\n\nDeseja procurar outro ponto neste mesmo REF?`,
           'Procurar outro'
         )
         console.log(`[useWorkflow] F2: resposta="${continuar ? 'Procurar outro' : 'Cancelar'}"`)
 
-        // Grava no Excel (IPC retorna imediatamente, write acontece em background)
         await window.electronAPI.writeResult()
-        console.log('[useWorkflow] F2: writeResult concluído (write async enfileirado)')
+        storeRef.current.setCurrentImageCondicao(condicaoValue)
 
         if (continuar) {
           const next = currentImageIndex + 1
@@ -113,9 +128,26 @@ export function useWorkflow(): void {
       }
     }
 
+    async function handleF4(): Promise<void> {
+      if (busy) return
+      busy = true
+      try {
+        const { currentRefIndex } = storeRef.current
+        if (currentRefIndex === 0) {
+          console.log('[useWorkflow] F4: já está no primeiro REF')
+          return
+        }
+        const snapshot = await window.electronAPI.prevRef()
+        console.log(`[useWorkflow] F4 → prevRef: refIndex=${snapshot.currentRefIndex}`)
+        storeRef.current.setFromSnapshot(snapshot)
+      } finally {
+        busy = false
+      }
+    }
+
     // Registra listeners e guarda as referências retornadas pelo preload
-    const channels: ShortcutChannel[] = ['shortcut:f1', 'shortcut:f2', 'shortcut:f3']
-    const handlers = [handleF1, handleF2, handleF3]
+    const channels: ShortcutChannel[] = ['shortcut:f1', 'shortcut:f2', 'shortcut:f3', 'shortcut:f4']
+    const handlers = [handleF1, handleF2, handleF3, handleF4]
     const listeners = channels.map((ch, i) => window.electronAPI.onShortcut(ch, handlers[i]))
 
     return () => {

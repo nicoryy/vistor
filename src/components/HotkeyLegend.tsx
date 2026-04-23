@@ -1,7 +1,8 @@
 const KEYS = [
-  { key: 'F1', label: 'Fechar / Próxima imagem', color: '#ff9800' },
-  { key: 'F2', label: 'Selecionar este ponto', color: '#4caf50' },
-  { key: 'F3', label: 'Encerrar revisão', color: '#f44336' }
+  { key: 'F1', label: 'Próxima imagem', color: '#ff9800' },
+  { key: 'F2', label: 'Selecionar / Remover condição', color: '#4caf50' },
+  { key: 'F3', label: 'Encerrar revisão', color: '#f44336' },
+  { key: 'F4', label: 'REF anterior', color: '#9c27b0' }
 ]
 
 export default function HotkeyLegend(): JSX.Element {

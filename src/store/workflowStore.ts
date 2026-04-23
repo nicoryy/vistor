@@ -10,6 +10,7 @@ interface WorkflowState {
 
   setInitial: (allRefs: string[], currentImages: BaseRow[]) => void
   setCurrentImageIndex: (index: number) => void
+  setCurrentImageCondicao: (condicao: string | null) => void
   setFromSnapshot: (snapshot: {
     allRefs: string[]
     currentRefIndex: number
@@ -31,6 +32,13 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
     set({ allRefs, currentRefIndex: 0, currentImages, currentImageIndex: 0, isFinished: false }),
 
   setCurrentImageIndex: (index) => set({ currentImageIndex: index }),
+
+  setCurrentImageCondicao: (condicao) =>
+    set((s) => ({
+      currentImages: s.currentImages.map((img, i) =>
+        i === s.currentImageIndex ? { ...img, condicao } : img
+      )
+    })),
 
   setFromSnapshot: (snapshot) => set(snapshot),
 

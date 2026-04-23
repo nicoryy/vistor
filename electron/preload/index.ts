@@ -13,8 +13,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeResult: () =>
     ipcRenderer.invoke('workflow:write-result'),
 
+  clearResult: () =>
+    ipcRenderer.invoke('workflow:clear-result'),
+
   nextRef: () =>
     ipcRenderer.invoke('workflow:next-ref'),
+
+  prevRef: () =>
+    ipcRenderer.invoke('workflow:prev-ref'),
 
   restartRef: () =>
     ipcRenderer.invoke('workflow:restart-ref'),
